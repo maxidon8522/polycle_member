@@ -1,104 +1,81 @@
+import { DateTime } from "luxon";
+import { loadDashboardData } from "../lib/dashboard";
 import styles from "./page.module.css";
 
-const weeklyMetrics = {
-  weekRange: "2/19 - 2/25",
-  tasksCompleted: 42,
-  membersReporting: "16 / 18",
-  topProject: "Palette",
-  nextCheckIn: "本日 23:00 Slack DM"
-};
-
-const taskHighlights = [
-  {
-    project: "Palette",
-    member: "山田 太郎",
-    count: 6,
-    focus: "Slack 連携 PoC",
-    trend: "↑ 先週比 +2"
-  },
-  {
-    project: "新規事業",
-    member: "佐藤 花",
-    count: 5,
-    focus: "ユーザーインタビュー整理",
-    trend: "→ 先週維持"
-  },
-  {
-    project: "Palette",
-    member: "呉 明華",
-    count: 4,
-    focus: "ダッシュボード KPI 設計",
-    trend: "↑ 先週比 +1"
-  }
-];
-
-const gmHighlights = [
-  {
-    type: "Good",
-    emoji: "👍",
-    member: "佐藤 花",
-    snippet: "「顧客の声をまとめた Notion を即日共有してくれて助かった！」",
-    reactions: 9,
-    tag: "good"
-  },
-  {
-    type: "More",
-    emoji: "🧠",
-    member: "呉 明華",
-    snippet: "「スプリント初日にタスク分割を済ませておきたい」",
-    reactions: 3,
-    tag: "more"
-  },
-  {
-    type: "Next",
-    emoji: "📅",
-    member: "山田 太郎",
-    snippet: "「Slack DM の通知ワークフローを金曜までに固める」",
-    reactions: 6,
-    tag: "next"
-  }
-];
-
-const dailyReportStatus = [
-  { member: "山田 太郎", project: "Palette", status: "submitted", submittedAt: "24:10", streak: 12 },
-  { member: "佐藤 花", project: "Palette", status: "submitted", submittedAt: "23:42", streak: 7 },
-  { member: "呉 明華", project: "新規事業", status: "pending", submittedAt: "-", streak: 4 },
-  { member: "田中 迅", project: "新規事業", status: "missing", submittedAt: "-", streak: 0 }
-] as const;
-
-const statusLabel: Record<(typeof dailyReportStatus)[number]["status"], string> = {
+const statusLabel: Record<"submitted" | "missing", string> = {
   submitted: "提出済み",
-  pending: "下書き保存",
   missing: "未提出"
 };
 
-export default function HomePage() {
+function formatWeekRange(start: DateTime, end: DateTime, timezone: string) {
+  const startLabel = start.setZone(timezone).toFormat("M/d");
+  const endLabel = end.setZone(timezone).toFormat("M/d");
+  return `${startLabel} - ${endLabel}`;
+}
+
+function formatDateTime(value: DateTime | null | undefined, timezone: string) {
+  if (!value) {
+    return "-";
+  }
+  return value.setZone(timezone).toFormat("M/d HH:mm");
+}
+
+export default async function HomePage() {
+  const data = await loadDashboardData();
+  const { weeklyMetrics, taskHighlights, gmHighlights, dailyReportStatus, errors, warnings, notices, timezone } = data;
+
+  const weekRange = formatWeekRange(weeklyMetrics.start, weeklyMetrics.end, timezone);
+  const membersReporting =
+    weeklyMetrics.membersTotal > 0 ? `${weeklyMetrics.reportsSubmitted} / ${weeklyMetrics.membersTotal}` : "-";
+  const topProject = weeklyMetrics.topProject ?? "記録なし";
+  const nextFocus = weeklyMetrics.nextFocus ?? "Slack の Next を確認してください";
+  const primaryTaskLink = taskHighlights.find((task) => task.relatedUrls.length > 0)?.relatedUrls[0];
+
   return (
     <main className={styles.main}>
+      {(errors.length > 0 || warnings.length > 0 || notices.length > 0) && (
+        <div className={styles.alertStack}>
+          {errors.map((error, index) => (
+            <div key={`error-${index}`} className={`${styles.alert} ${styles.error}`}>
+              {error}
+            </div>
+          ))}
+          {warnings.map((warning, index) => (
+            <div key={`warning-${index}`} className={`${styles.alert} ${styles.warning}`}>
+              {warning}
+            </div>
+          ))}
+          {notices.map((notice, index) => (
+            <div key={`notice-${index}`} className={`${styles.alert} ${styles.notice}`}>
+              {notice}
+            </div>
+          ))}
+        </div>
+      )}
+
       <header className={styles.hero}>
         <div className={styles.heroHeadline}>
           <span className={styles.heroBadge}>今週のダイジェスト</span>
           <h1>Polycle ダッシュボード</h1>
           <p>
-            直近 7 日の完了タスク、Daily Report のハイライト、未提出者を
-            ひと目でチェック。Slack と Sheets の最新状況をタピオカティーのようにまろやかに整理しました。
+            Slack と Google Sheets のデータを集約して、完了タスク・G/M/N ハイライト・Daily Report 提出状況をまとめて確認できます。
           </p>
         </div>
         <div className={styles.heroMetrics}>
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>完了タスク</span>
             <strong className={styles.metricValue}>{weeklyMetrics.tasksCompleted}</strong>
-            <span className={styles.metricCaption}>{weeklyMetrics.weekRange}</span>
+            <span className={styles.metricCaption}>{weekRange}</span>
           </div>
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Daily Report 提出</span>
-            <strong className={styles.metricValue}>{weeklyMetrics.membersReporting}</strong>
+            <strong className={styles.metricValue}>{membersReporting}</strong>
             <span className={styles.metricCaption}>メンバー提出状況</span>
           </div>
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>注目プロジェクト</span>
-            <strong className={styles.metricValue}>{weeklyMetrics.topProject}</strong>
-            <span className={styles.metricCaption}>{weeklyMetrics.nextCheckIn}</span>
+            <strong className={styles.metricValue}>{topProject}</strong>
+            <span className={styles.metricCaption}>{nextFocus}</span>
           </div>
         </div>
       </header>
@@ -106,22 +83,35 @@ export default function HomePage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>直近 1 週間の完了タスク Top</h2>
-          <button className={styles.secondaryButton}>タスク管理を見る</button>
+          {primaryTaskLink ? (
+            <a className={styles.secondaryButton} href={primaryTaskLink} target="_blank" rel="noreferrer">
+              タスク管理を見る
+            </a>
+          ) : (
+            <span className={`${styles.secondaryButton} ${styles.secondaryButtonDisabled}`}>リンク未設定</span>
+          )}
         </div>
         <div className={styles.cardsGrid}>
+          {taskHighlights.length === 0 && <p className={styles.emptyMessage}>完了タスクがまだありません。</p>}
           {taskHighlights.map((task) => (
             <article key={`${task.project}-${task.member}`} className={styles.infoCard}>
               <header className={styles.cardHeader}>
                 <span className={styles.projectTag}>{task.project}</span>
-                <span className={styles.trend}>{task.trend}</span>
+                <span className={styles.trend}>{formatDateTime(task.latestCompletedAt, timezone)}</span>
               </header>
               <h3>{task.member}</h3>
-              <p className={styles.cardFocus}>{task.focus}</p>
+              <p className={styles.cardFocus}>{task.sampleTask ?? "最近完了したタスクをチェック"}</p>
               <footer className={styles.cardFooter}>
                 <span className={styles.cardCount}>
                   <strong>{task.count}</strong> 件
                 </span>
-                <span className={styles.cardLink}>詳しく見る →</span>
+                {task.relatedUrls[0] ? (
+                  <a className={styles.cardLink} href={task.relatedUrls[0]} target="_blank" rel="noreferrer">
+                    シートを開く →
+                  </a>
+                ) : (
+                  <span className={styles.cardLink}>シート情報未設定</span>
+                )}
               </footer>
             </article>
           ))}
@@ -131,11 +121,14 @@ export default function HomePage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>G / M / N ハイライト</h2>
-          <button className={styles.secondaryButton}>Daily Report 一覧</button>
+          <a className={styles.secondaryButton} href="https://slack.com/app_redirect" target="_blank" rel="noreferrer">
+            Slack を開く
+          </a>
         </div>
         <div className={styles.highlightGrid}>
+          {gmHighlights.length === 0 && <p className={styles.emptyMessage}>今週の G/M/N ハイライトはまだありません。</p>}
           {gmHighlights.map((highlight) => (
-            <article key={`${highlight.type}-${highlight.member}`} className={`${styles.highlightCard} ${styles[highlight.tag]}`}>
+            <article key={`${highlight.type}-${highlight.member}`} className={`${styles.highlightCard} ${styles[highlight.type.toLowerCase()]}`}>
               <header className={styles.highlightHeader}>
                 <span className={styles.highlightIcon}>{highlight.emoji}</span>
                 <div>
@@ -146,7 +139,9 @@ export default function HomePage() {
               <p className={styles.highlightText}>{highlight.snippet}</p>
               <footer className={styles.highlightFooter}>
                 <span>リアクション {highlight.reactions}</span>
-                <span className={styles.cardLink}>Slack を開く →</span>
+                <a className={styles.cardLink} href={highlight.permalink} target="_blank" rel="noreferrer">
+                  Slack を開く →
+                </a>
               </footer>
             </article>
           ))}
@@ -163,24 +158,37 @@ export default function HomePage() {
             <thead>
               <tr>
                 <th>メンバー</th>
-                <th>プロジェクト</th>
                 <th>ステータス</th>
                 <th>提出時刻</th>
                 <th>連続提出日数</th>
+                <th>リンク</th>
               </tr>
             </thead>
             <tbody>
+              {dailyReportStatus.length === 0 && (
+                <tr>
+                  <td colSpan={5}>Slack から Daily Report が取得できませんでした。</td>
+                </tr>
+              )}
               {dailyReportStatus.map((row) => (
-                <tr key={row.member}>
+                <tr key={row.userId}>
                   <td>{row.member}</td>
-                  <td>{row.project}</td>
                   <td>
                     <span className={`${styles.statusBadge} ${styles[row.status]}`}>
                       {statusLabel[row.status]}
                     </span>
                   </td>
-                  <td>{row.submittedAt}</td>
+                  <td>{formatDateTime(row.submittedAt ?? null, timezone)}</td>
                   <td>{row.streak} 日</td>
+                  <td>
+                    {row.permalink ? (
+                      <a className={styles.cardLink} href={row.permalink} target="_blank" rel="noreferrer">
+                        投稿を見る →
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

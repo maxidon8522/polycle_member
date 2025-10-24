@@ -1,0 +1,5 @@
+# Project-wide ignores
+.DS_Store
+
+# Local environment variables
+web/.env.local

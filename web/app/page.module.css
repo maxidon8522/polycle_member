@@ -131,10 +131,26 @@
   border-color: rgba(109, 75, 61, 0.5);
 }
 
+.secondaryButtonDisabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 .cardsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
+}
+
+.emptyMessage {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px 24px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px dashed rgba(109, 75, 61, 0.25);
+  color: rgba(60, 35, 23, 0.7);
+  font-size: 15px;
 }
 
 .infoCard {
@@ -343,6 +359,38 @@
 .missing {
   background: rgba(163, 63, 50, 0.16);
   color: #693226;
+}
+
+.alertStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert {
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.6;
+  border: 1px solid transparent;
+}
+
+.error {
+  background: rgba(163, 63, 50, 0.12);
+  border-color: rgba(163, 63, 50, 0.25);
+  color: #7a2f21;
+}
+
+.warning {
+  background: rgba(216, 163, 115, 0.12);
+  border-color: rgba(216, 163, 115, 0.25);
+  color: #7a4a22;
+}
+
+.notice {
+  background: rgba(109, 75, 61, 0.08);
+  border-color: rgba(109, 75, 61, 0.16);
+  color: rgba(60, 35, 23, 0.78);
 }
 
 @media (max-width: 1024px) {
