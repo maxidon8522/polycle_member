@@ -1,4 +1,18 @@
-# Project-wide ignores
+# Node
+node_modules/
+web/node_modules/
+
+# Next.js build outputs
+.next/
+web/.next/
+out/
+
+# Env files
+.env
+.env.local
+web/.env.local
+
+# OS
 .DS_Store
 
 # Local environment variables
